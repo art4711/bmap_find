@@ -19,6 +19,7 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <string.h>
+#include <assert.h>
 
 #include "bmap.h"
 
@@ -103,4 +104,98 @@ simple_first_set(void *v, unsigned int b)
 }
 
 struct bmap_interface bmap_simple = { simple_alloc, free, simple_set, simple_isset, simple_first_set };
+
+
+/*
+ * 64 bit pyramid.
+ */
+#define P64_LEVELS 6
+struct p64_bmap {
+	unsigned int sz;
+	uint64_t *lvl[P64_LEVELS];
+};
+
+#define P64_LM(l) ((P64_LEVELS - ((l) + 1)) * 6)
+#define P64_SLOT(b, l) ((uint64_t)SIMPLE_SLOT((b) >> P64_LM(l)))
+#define P64_MASK(b, l) ((uint64_t)SIMPLE_MASK((b) >> P64_LM(l)))
+
+static void *
+p64_alloc(size_t nbits)
+{
+	struct p64_bmap *pb;
+	size_t sz;
+	int l;
+
+	sz = sizeof(*pb);
+	for (l = 0; l < 6; l++) {
+		sz += (P64_SLOT(nbits + 63, l) + 1) * sizeof(uint64_t);
+	}
+	pb = calloc(sz, 1);
+	uint64_t *a = (uint64_t *)(pb + 1);
+	for (l = 0; l < 6; l++) {
+		pb->lvl[l] = a;
+		a += P64_SLOT(nbits + 63, l) + 1;
+	}
+	pb->sz = nbits;
+	return pb;
+}
+
+static void
+p64_set(void *v, unsigned int b)
+{
+	struct p64_bmap *pb = v;
+	int l;
+
+	for (l = 0; l < P64_LEVELS; l++) {
+		pb->lvl[l][P64_SLOT(b, l)] |= P64_MASK(b, l);
+	}
+}
+
+static bool
+p64_isset(void *v, unsigned int b)
+{
+	struct p64_bmap *pb = v;
+	return (pb->lvl[5][P64_SLOT(b, 5)] & P64_MASK(b, 5)) != 0;
+}
+
+static unsigned int
+p64_first_set(void *v, unsigned int b)
+{
+	struct p64_bmap *pb = v;
+	unsigned int l;
+	uint64_t masked;
+	unsigned int slot;
+
+	if (b > pb->sz)
+		return BMAP_INVALID_OFF;
+
+	/*
+	 * quick check for the initial lvl 5 slot being populated.
+	 * This saves a lot of effort in very dense bitmaps.
+	 */
+	slot = P64_SLOT(b, 5);
+	masked = ~(P64_MASK(b, 5) - 1) & pb->lvl[5][P64_SLOT(b, 5)];
+	b = slot << 6;
+	if (masked)
+		return b + __builtin_ffsll(masked) - 1;
+	b += 64;
+
+	for (l = 0; l < 6; l++) {
+		slot = P64_SLOT(b, l);
+		masked = ~(P64_MASK(b, l) - 1) & pb->lvl[l][slot];
+		if (masked) {
+			unsigned int min = ((slot << 6) + __builtin_ffsll(masked) - 1) << P64_LM(l);
+			if (min > b)
+				b = min;
+		} else {
+			if (l == 0)
+				return BMAP_INVALID_OFF;
+			b = (slot + 1) << P64_LM(l - 1);
+			l -= 2;
+		}
+	}
+	return b;
+}
+
+struct bmap_interface bmap_p64 = { p64_alloc, free, p64_set, p64_isset, p64_first_set };
 

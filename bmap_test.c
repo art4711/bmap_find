@@ -32,6 +32,7 @@ struct {
 } tests[] = {
 	{ &bmap_dumb, "dumb" },
 	{ &bmap_simple, "simple" },
+	{ &bmap_p64, "p64" },
 };
 
 static void
