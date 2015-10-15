@@ -24,7 +24,7 @@
 
 struct simple_bmap {
 	unsigned int sz;
-	int64_t data[];
+	uint64_t data[];
 };
 
 static void *
@@ -58,6 +58,9 @@ simple_isset(void *v, unsigned int b)
 	return (bmap->data[off] & mask) != 0;
 }
 
+/*
+ * Check each bit linearly.
+ */
 static unsigned int
 dumb_first_set(void *v, unsigned int b)
 {
@@ -74,3 +77,29 @@ dumb_first_set(void *v, unsigned int b)
 }
 
 struct bmap_interface bmap_dumb = { simple_alloc, free, simple_set, simple_isset, dumb_first_set };
+
+/*
+ * Check each 64 bit slot individually with
+ * special care for the first slot.
+ */
+static unsigned int
+simple_first_set(void *v, unsigned int b)
+{
+	struct simple_bmap *bmap = v;
+	unsigned int slot = SIMPLE_SLOT(b);
+	unsigned int maxslot = SIMPLE_SLOT(bmap->sz + 63);
+
+	uint64_t first_slot = ~((1ULL << (b & 0x3f)) - 1) & bmap->data[slot];
+	if (first_slot) {
+		return (slot << 6) + __builtin_ffsll(first_slot) - 1;
+	}
+        slot++;		/* first slot checked, move on. */
+        for (; slot < maxslot; slot++) {
+                if (bmap->data[slot])
+                        return (slot << 6) + __builtin_ffsll(bmap->data[slot]) - 1;
+        }
+        return BMAP_INVALID_OFF;
+}
+
+struct bmap_interface bmap_simple = { simple_alloc, free, simple_set, simple_isset, simple_first_set };
+

@@ -31,6 +31,7 @@ struct {
 	const char *n;
 } tests[] = {
 	{ &bmap_dumb, "dumb" },
+	{ &bmap_simple, "simple" },
 };
 
 static void
@@ -42,14 +43,12 @@ smoke_test(struct bmap_interface *bi, const char *name)
 	bi->set(b, 62);
 	bi->set(b, 88);
 	unsigned int r;
-	if ((r = bi->first_set(b, 0)) != 1)
-		errx(1, "first_set(0) != 1 (%d)", r);
-	if ((r = bi->first_set(b, 2)) != 9)
-		errx(1, "first_set(2) != 9 (%d)", r);
-	if ((r = bi->first_set(b, 10)) != 62)
-		errx(1, "first_set(2) != 88 (%d)", r);
-	if ((r = bi->first_set(b, 63)) != 88)
-		errx(1, "first_set(2) != 88 (%d)", r);
+#define T(s,e) if ((r = bi->first_set(b, s)) != e) errx(1, "smoke test %s first_set(%d) != %d (%d)", name, s, e, r)
+	T(0, 1);
+	T(2, 9);
+	T(10, 62);
+	T(63, 88);
+#undef T
 	bi->free(b);
 	printf("smoke test of %s worked\n", name);
 }
@@ -191,8 +190,11 @@ main(int argc, char **argv)
 	}
 
 	for (t = 0; t < howmany(tests); t++) {
-		int s;
 		smoke_test(tests[t].bi, tests[t].n);
+	}
+
+	for (t = 0; t < howmany(tests); t++) {
+		int s;
 
 		for (s = 0; s < howmany(test_sets); s++)
 			test_one(tests[t].bi, tests[t].n, &test_sets[s], statdir);
