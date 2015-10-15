@@ -35,7 +35,7 @@ all the set bits in it.
 
 Bitmaps happen to fit perfectly for an application I'm working on, but
 we've always had a problem to estimate how dense a set will become and
-when to switch between a sorted array and a bitmap. In one application
+when to switch between a sorted array and a bitmap. In one use case
 we made up an estimate and then moved it around until all benchmarks
 agreed. The worry is that this is dependent on our particular use case
 at this time and might not be true later.
@@ -58,9 +58,15 @@ efficient to populate, but also allows for efficient traversal.
 
 The bitmaps only need to handle up to 2^32 bits.
 
-I've been debating adding a "foreach" function, but it doesn't really
-matter for my application and `first_set` called on `previous result +
-1` should be almost equivalent.
+I've been debating adding a `foreach` function, but it doesn't really
+matter for my application and can be trivially implemented as:
+
+    last = 0;
+    while ((last = first_set(last)) != INVALID)
+        last++;
+
+Which will be almost as effcient (minus some savings we can get from
+not having to recalculate some offsets in `first_set`).
 
 ## The implementations
 
@@ -74,14 +80,15 @@ and `isset` are trivial. `first_set` checks every bit starting from
 
 Same as `dumb` except that `first_set` now checks a whole 64 bit word
 at a time until it finds a non-zero one. This implementation depends
-on the compiler providing __builtin_ffsll which both gcc and clang do.
+on the compiler providing `__builtin_ffsll` which both gcc and clang
+do.
 
 ### p64-naive - 64 bit pyramid.
 
-6 levels of bitmaps. The lowest level (5), is a normal bitmap with
-64bit slots. The levels above are bitmaps indicating which of the
-slots in the next level are not zero. The idea is that this allows us
-to take bigger strides forward when traversing sparse bitmaps.
+6 levels of bitmaps. The lowest level (5), is a normal bitmap with 64
+bit slots. The levels above are bitmaps indicating which of the slots
+in the next level are not zero. The idea is that this allows us to
+take bigger strides forward when traversing sparse bitmaps.
 
 ### p64
 
@@ -110,7 +117,9 @@ we used to populate the bitmap.
 I haven't polished the sizes of the sets or been too ambitious in
 generating many sets, but the current results show what I need to
 show. If someone has a different use case, feel free to add tests
-and make a pull request.
+and make a pull request. The most interesting case here would
+probably be to add a set with many clusters and large mostly empty
+areas between.
 
 I'm aware that 25 million isn't that "huge", but it's all I needed to
 know and the `dumb` and `simple` implementations take too long to run
@@ -212,12 +221,12 @@ they both use the exact same code.
 ministat sees a difference, but this is due to the machine I'm running
 this on being noisy and the resolution of the timers sucks. But this
 basically tells us that differences of 2% are just noise (or I should
-have used a higher confidence interval).
+have used a higher confidence).
 
 #### p64
 
 It's much more interesting to compare to `p64` (this is exactly the
-same as `p64-naive` plus/minus noise).
+same as `p64-naive` +/- noise).
 
     p64-huge-sparse-populate vs. simple-huge-sparse-populate
     x statdir/simple-huge-sparse-populate
@@ -287,7 +296,7 @@ same as `p64-naive` plus/minus noise).
 
 The `large-sparse` and `huge-sparse` tests are mostly useless here. In
 the actual result there's one initial cache miss and then the numbers
-hover between 0 and 0.000001 after which the numbers are
+hover between 0 and 0.000001 after which the measurements are
 truncated. This is useless.
 
 But all the other tests show a consistent 2.1-2.2x slowdown. This is
