@@ -88,8 +88,8 @@ simple_first_set(void *v, unsigned int b)
 	struct simple_bmap *bmap = v;
 	unsigned int slot = SIMPLE_SLOT(b);
 	unsigned int maxslot = SIMPLE_SLOT(bmap->sz + 63);
+	uint64_t first_slot = ~(SIMPLE_MASK(b) - 1) & bmap->data[slot];
 
-	uint64_t first_slot = ~((1ULL << (b & 0x3f)) - 1) & bmap->data[slot];
 	if (first_slot) {
 		return (slot << 6) + __builtin_ffsll(first_slot) - 1;
 	}
