@@ -199,3 +199,29 @@ p64_first_set(void *v, unsigned int b)
 
 struct bmap_interface bmap_p64 = { p64_alloc, free, p64_set, p64_isset, p64_first_set };
 
+static unsigned int
+p64_first_set_no_l5_peek(void *v, unsigned int b)
+{
+	struct p64_bmap *pb = v;
+	unsigned int l;
+	uint64_t masked;
+	unsigned int slot;
+
+	for (l = 0; l < 6; l++) {
+		slot = P64_SLOT(b, l);
+		masked = ~(P64_MASK(b, l) - 1) & pb->lvl[l][slot];
+		if (masked) {
+			unsigned int min = ((slot << 6) + __builtin_ffsll(masked) - 1) << P64_LM(l);
+			if (min > b)
+				b = min;
+		} else {
+			if (l == 0)
+				return BMAP_INVALID_OFF;
+			b = (slot + 1) << P64_LM(l - 1);
+			l -= 2;
+		}
+	}
+	return b;
+}
+
+struct bmap_interface bmap_p64_naive = { p64_alloc, free, p64_set, p64_isset, p64_first_set_no_l5_peek };

@@ -33,6 +33,7 @@ struct {
 	{ &bmap_dumb, "dumb" },
 	{ &bmap_simple, "simple" },
 	{ &bmap_p64, "p64" },
+	{ &bmap_p64_naive, "p64-naive" },
 };
 
 static void
