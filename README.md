@@ -1,4 +1,4 @@
-# Searching for set elements in at bitmap
+# Searching for set elements in a bitmap
 
 Tests to see the efficiency of various approches to implementing
 bitmaps used for finding set elements.
