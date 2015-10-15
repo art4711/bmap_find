@@ -28,17 +28,15 @@ genstats:: bmap
 	./bmap statdir
 
 REF_STAT=simple
-STAT_IMPL=p64 dumb
+STAT_IMPL=p64 p64-naive dumb
 STAT_OPS=check populate
 STAT_CASES=huge-sparse large-sparse mid-dense mid-mid mid-sparse small-sparse
 
-
-#for a in statdir/*-$$case-$$op ; do printf "$$a ->\n" ; $(MINISTAT) -q statdir/$(REF_STAT)-$$case-$$op $$a | tail -2 | head -1 | awk '{ print $1 }' ; done ;
 cmp_stats::
 	for op in $(STAT_OPS) ; do \
-		for case in $(STAT_CASES) ; do \
-			for impl in $(STAT_IMPL) ; do \
-				printf "$$impl-$$case-$$op vs. $(REF_STAT)-$$case-$$op\n" ; $(MINISTAT) -q statdir/$(REF_STAT)-$$case-$$op statdir/$$impl-$$case-$$op | tail -2 | head -1 ;\
+		for impl in $(STAT_IMPL) ; do \
+			for case in $(STAT_CASES) ; do \
+				printf "\n$$impl-$$case-$$op vs. $(REF_STAT)-$$case-$$op\n" ; $(MINISTAT) -c 98 -q statdir/$(REF_STAT)-$$case-$$op statdir/$$impl-$$case-$$op ;\
 			done ; \
 		done ; \
 	done
