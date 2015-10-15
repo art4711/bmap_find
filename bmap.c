@@ -37,6 +37,7 @@ simple_alloc(size_t nbits)
 
 #define SIMPLE_SLOT(bit) ((bit) >> 6)
 #define SIMPLE_MASK(bit) (1LLU << ((bit) & ((1 << 6) - 1)))
+#define SIMPLE_SLOT_TO_B(s) ((s) << 6)
 
 static void
 simple_set(void *v, unsigned int b)
@@ -91,12 +92,12 @@ simple_first_set(void *v, unsigned int b)
 	uint64_t first_slot = ~(SIMPLE_MASK(b) - 1) & bmap->data[slot];
 
 	if (first_slot) {
-		return (slot << 6) + __builtin_ffsll(first_slot) - 1;
+		return SIMPLE_SLOT_TO_B(slot) + __builtin_ffsll(first_slot) - 1;
 	}
         slot++;		/* first slot checked, move on. */
         for (; slot < maxslot; slot++) {
                 if (bmap->data[slot])
-                        return (slot << 6) + __builtin_ffsll(bmap->data[slot]) - 1;
+                        return SIMPLE_SLOT_TO_B(slot) + __builtin_ffsll(bmap->data[slot]) - 1;
         }
         return BMAP_INVALID_OFF;
 }
