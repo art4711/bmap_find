@@ -41,13 +41,19 @@ smoke_test(struct bmap_interface *bi, const char *name)
 	bi->set(b, 1);
 	bi->set(b, 9);
 	bi->set(b, 62);
+	bi->set(b, 63);
+	bi->set(b, 64);
+	bi->set(b, 65);
 	bi->set(b, 88);
 	unsigned int r;
 #define T(s,e) if ((r = bi->first_set(b, s)) != e) errx(1, "smoke test %s first_set(%d) != %d (%d)", name, s, e, r)
 	T(0, 1);
 	T(2, 9);
 	T(10, 62);
-	T(63, 88);
+	T(63, 63);
+	T(64, 64);
+	T(65, 65);
+	T(66, 88);
 #undef T
 	bi->free(b);
 	printf("smoke test of %s worked\n", name);
