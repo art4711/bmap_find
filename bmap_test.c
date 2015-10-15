@@ -72,7 +72,10 @@ struct test_set {
 } test_sets[] = {
 	{ 	10,		1000,		"small-sparse" },
 	{ 	100,		1000000,	"mid-sparse" },
+	{	10000,		1000000,	"mid-mid" },
 	{ 	500000,		1000000,	"mid-dense" },
+	{	10,		10000000,	"large-sparse" },
+	{	10,		25000000,	"huge-sparse" },
 };
 
 #define howmany(a) (sizeof(a) / sizeof(a[0]))
@@ -130,7 +133,7 @@ check(struct bmap_interface *bi, struct test_set *ts, void *v)
 	for (i = 0; i < ts->nelems; i++) {
 		unsigned int n = bi->first_set(v, last);
 		if (n != ts->arr[i])
-			printf("bad elem %u != %u\n", n, ts->arr[i]);
+			errx(1, "bad first_set(%u) -> %u != %u\n", last, n, ts->arr[i]);
 		last = n + 1;
 	}
 }
@@ -141,7 +144,7 @@ run_and_measure(void (*fn)(struct bmap_interface *bi, struct test_set *ts, void 
 	struct stopwatch sw;
 	FILE *statfile;
 	int rep, toprep;
-	unsigned int nrep = 1000000000 / ts->bmapsz;
+	unsigned int nrep = 100000000 / ts->bmapsz;
 
 	if (statdir) {
 		char fname[PATH_MAX];
