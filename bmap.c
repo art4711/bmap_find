@@ -35,20 +35,15 @@ simple_alloc(size_t nbits)
 	return bmap;
 }
 
-#if 1
-#define S_OFF(off, mask, bit) do { off = ((bit) >> 6); mask = 1LLU << ((bit) & ((1 << 6) - 1)); } while (0)
-#else
-#define S_OFF(off, mask, bit) do { off = (bit) / 64; mask = 1LLU << ((bit) % 64); } while (0)
-#endif
+#define SIMPLE_SLOT(bit) ((bit) >> 6)
+#define SIMPLE_MASK(bit) (1LLU << ((bit) & ((1 << 6) - 1)))
 
 static void
 simple_set(void *v, unsigned int b)
 {
 	struct simple_bmap *bmap = v;
-	unsigned int off;
-	uint64_t mask;
-
-	S_OFF(off, mask, b);
+	unsigned int off = SIMPLE_SLOT(b);
+	uint64_t mask = SIMPLE_MASK(b);
 
 	bmap->data[off] |= mask;
 }
@@ -57,10 +52,8 @@ static bool
 simple_isset(void *v, unsigned int b)
 {
 	struct simple_bmap *bmap = v;
-	unsigned int off;
-	uint64_t mask;
-
-	S_OFF(off, mask, b);
+	unsigned int off = SIMPLE_SLOT(b);
+	uint64_t mask = SIMPLE_MASK(b);
 
 	return (bmap->data[off] & mask) != 0;
 }
@@ -71,9 +64,8 @@ dumb_first_set(void *v, unsigned int b)
 	struct simple_bmap *bmap = v;
 	unsigned int i;
 	for (i = b; i < bmap->sz; i++) {
-		unsigned int off;
-		uint64_t mask;
-		S_OFF(off, mask, i);
+		unsigned int off = SIMPLE_SLOT(i);
+		uint64_t mask = SIMPLE_MASK(i);
 		if (bmap->data[off] & mask) {
 			return i;
 		}
