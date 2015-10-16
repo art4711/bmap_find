@@ -557,3 +557,253 @@ p64v3r3_first_set(void *v, unsigned int b)
 
 struct bmap_interface bmap_p64v3r3 = { p64v3_alloc, free, p64v3_set, p64v3_isset, p64v3r3_first_set };
 
+
+/* Like p64, but p8 instead. */
+
+struct p8_bmap {
+	unsigned int sz;
+	unsigned int levels;
+	uint8_t *lvl[];
+};
+
+static const uint32_t log2_8 = 3;
+
+/* log2 of how many bits one bit covers at this level. */
+static inline uint32_t
+p8_bpb(uint32_t l)
+{
+	return l * log2_8;
+}
+
+/* log2 of how many bits one slot covers at this level. */
+static inline uint32_t
+p8_bps(uint32_t l)
+{
+	return (l + 1) * log2_8;
+}
+
+static inline uint32_t
+p8_slot(uint32_t b, uint32_t l)
+{
+	return b >> p8_bps(l);
+}
+
+static inline uint32_t
+p8_mask(uint32_t b, uint32_t l)
+{
+	return 1U << ((b >> p8_bpb(l)) & ((1 << log2_8) - 1));
+}
+
+/* How many slots do we need to cover nbits on this level */
+static inline uint32_t
+p8_slots_per_level(uint32_t nbits, uint32_t l)
+{
+	return p8_slot(nbits, l) + 1;
+}
+
+static inline uint8_t *
+p8_pbslot(struct p8_bmap *pb, uint32_t b, uint32_t l)
+{
+	return &pb->lvl[l][p8_slot(b, l)];
+}
+
+static void *
+p8_alloc(size_t nbits)
+{
+	struct p8_bmap *pb;
+	size_t sz;
+	int l;
+	int levels;
+
+	for (levels = 0; p8_slots_per_level(nbits, levels) > 1; levels++)
+		;
+	sz = sizeof(*pb);
+	for (l = 0; l < levels; l++) {
+		sz += p8_slots_per_level(nbits, l);
+	}
+	levels++;
+	sz += levels * sizeof(uint8_t **);
+	pb = calloc(sz, 1);
+	uint8_t *a = (uint8_t *)((uint8_t **)(pb + 1) + levels);
+	for (l = 0; l < levels; l++) {
+		pb->lvl[l] = a;
+		a += p8_slots_per_level(nbits, l);
+	}
+	pb->sz = nbits;
+	pb->levels = levels;
+	return pb;
+}
+
+static void
+p8_set(void *v, unsigned int b)
+{
+	struct p8_bmap *pb = v;
+	int l;
+
+	for (l = 0; l < pb->levels; l++) {
+		*p8_pbslot(pb, b, l) |= p8_mask(b, l);
+	}
+}
+
+static bool
+p8_isset(void *v, unsigned int b)
+{
+	struct p8_bmap *pb = v;
+	return (*p8_pbslot(pb, b, 0) & p8_mask(b, 0)) != 0;
+}
+
+static unsigned int
+p8_first_set_r(struct p8_bmap *pb, unsigned int b, uint32_t l)
+{
+	uint32_t slot = p8_slot(b, l);
+	uint32_t masked = ~(p8_mask(b, l) - 1) & pb->lvl[l][slot];
+	if (masked) {
+		uint32_t m = ((slot << log2_8) + __builtin_ffs(masked) - 1) << p8_bpb(l);
+		if (l == 0)
+			return m;
+		if (m > b)
+			b = m;
+		return p8_first_set_r(pb, b, l - 1);
+	} else {
+		if (l == pb->levels - 1)
+			return BMAP_INVALID_OFF;
+		b = (slot + 1) << p8_bps(l);
+		return p8_first_set_r(pb, b, l + 1);
+	}
+}
+
+static unsigned int
+p8_first_set(void *v, unsigned int b)
+{
+	struct p8_bmap *pb = v;
+	if (b > pb->sz)
+		return BMAP_INVALID_OFF;
+	return p8_first_set_r(pb, b, 0);
+}
+
+struct bmap_interface bmap_p8 = { p8_alloc, free, p8_set, p8_isset, p8_first_set };
+
+/* Like p8, but p32 instead. */
+
+struct p32_bmap {
+	unsigned int sz;
+	unsigned int levels;
+	uint32_t *lvl[];
+};
+
+static const uint32_t log2_32 = 5;
+
+/* log2 of how many bits one bit covers at this level. */
+static inline uint32_t
+p32_bpb(uint32_t l)
+{
+	return l * log2_32;
+}
+
+/* log2 of how many bits one slot covers at this level. */
+static inline uint32_t
+p32_bps(uint32_t l)
+{
+	return (l + 1) * log2_32;
+}
+
+static inline uint32_t
+p32_slot(uint32_t b, uint32_t l)
+{
+	return b >> p32_bps(l);
+}
+
+static inline uint32_t
+p32_mask(uint32_t b, uint32_t l)
+{
+	return 1U << ((b >> p32_bpb(l)) & ((1 << log2_32) - 1));
+}
+
+/* How many slots do we need to cover nbits on this level */
+static inline uint32_t
+p32_slots_per_level(uint32_t nbits, uint32_t l)
+{
+	return p32_slot(nbits, l) + 1;
+}
+
+static inline uint32_t *
+p32_pbslot(struct p32_bmap *pb, uint32_t b, uint32_t l)
+{
+	return &pb->lvl[l][p32_slot(b, l)];
+}
+
+static void *
+p32_alloc(size_t nbits)
+{
+	struct p32_bmap *pb;
+	size_t sz;
+	int l;
+	int levels;
+
+	for (levels = 0; p32_slots_per_level(nbits, levels) > 1; levels++)
+		;
+	sz = sizeof(*pb);
+	for (l = 0; l < levels; l++) {
+		sz += p32_slots_per_level(nbits, l) * sizeof(uint32_t);
+	}
+	levels++;
+	sz += levels * sizeof(uint32_t **);
+	pb = calloc(sz, 1);
+	uint32_t *a = (uint32_t *)((uint32_t **)(pb + 1) + levels);
+	for (l = 0; l < levels; l++) {
+		pb->lvl[l] = a;
+		a += p32_slots_per_level(nbits, l);
+	}
+	pb->sz = nbits;
+	pb->levels = levels;
+	return pb;
+}
+
+static void
+p32_set(void *v, unsigned int b)
+{
+	struct p32_bmap *pb = v;
+	int l;
+
+	for (l = 0; l < pb->levels; l++) {
+		*p32_pbslot(pb, b, l) |= p32_mask(b, l);
+	}
+}
+
+static bool
+p32_isset(void *v, unsigned int b)
+{
+	struct p32_bmap *pb = v;
+	return (*p32_pbslot(pb, b, 0) & p32_mask(b, 0)) != 0;
+}
+
+static unsigned int
+p32_first_set_r(struct p32_bmap *pb, unsigned int b, uint32_t l)
+{
+	uint32_t slot = p32_slot(b, l);
+	uint32_t masked = ~(p32_mask(b, l) - 1) & pb->lvl[l][slot];
+	if (masked) {
+		uint32_t m = ((slot << log2_32) + __builtin_ffs(masked) - 1) << p32_bpb(l);
+		if (l == 0)
+			return m;
+		if (m > b)
+			b = m;
+		return p32_first_set_r(pb, b, l - 1);
+	} else {
+		if (l == pb->levels - 1)
+			return BMAP_INVALID_OFF;
+		b = (slot + 1) << p32_bps(l);
+		return p32_first_set_r(pb, b, l + 1);
+	}
+}
+
+static unsigned int
+p32_first_set(void *v, unsigned int b)
+{
+	struct p32_bmap *pb = v;
+	if (b > pb->sz)
+		return BMAP_INVALID_OFF;
+	return p32_first_set_r(pb, b, 0);
+}
+
+struct bmap_interface bmap_p32 = { p32_alloc, free, p32_set, p32_isset, p32_first_set };

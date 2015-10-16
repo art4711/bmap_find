@@ -28,13 +28,13 @@ genstats:: bmap
 	./bmap statdir
 
 REF_STAT=simple
-STAT_IMPL=p64 p64-naive dumb p64v2 p64v3 p64v3r p64v3r2 p64v3r3
+STAT_IMPL=p64 p64-naive dumb p64v2 p64v3 p64v3r p64v3r2 p64v3r3 p8 p32
 STAT_OPS=check populate
 STAT_CASES=huge-sparse large-sparse mid-dense mid-mid mid-sparse small-sparse
 
 # for targeted stats
-#REF_STAT=simple
-#STAT_IMPL=p64v3r3
+#REF_STAT=p64v3r
+#STAT_IMPL=p32
 #STAT_OPS=check populate
 
 cmp_stats::

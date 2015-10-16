@@ -39,6 +39,8 @@ struct {
 	{ &bmap_p64v3r, "p64v3r" },
 	{ &bmap_p64v3r2, "p64v3r2" },
 	{ &bmap_p64v3r3, "p64v3r3" },
+	{ &bmap_p8, "p8" },
+	{ &bmap_p32, "p32" },
 };
 
 static void

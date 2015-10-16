@@ -1239,6 +1239,260 @@ a small case it's not really worth it to do anything about
 it. Populate remains slower, but that's quite natural and I can't see
 any way of making it more efficient.
 
+#### p8
+
+Let's try different sizes of the slots, first up are 8 bits at a time.
+Comparing to `p64v3b`:
+
+    p8-huge-sparse-check vs. p64v3r-huge-sparse-check
+    x statdir/p64v3r-huge-sparse-check
+    + statdir/p8-huge-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100         1e-06       4.6e-05         1e-06      1.66e-06 4.5443271e-06
+    + 100         2e-06       1.1e-05         2e-06      2.42e-06 1.4645991e-06
+    No difference proven at 98.0% confidence
+    
+    p8-large-sparse-check vs. p64v3r-large-sparse-check
+    x statdir/p64v3r-large-sparse-check
+    + statdir/p8-large-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100         3e-06         1e-05         3e-06      3.26e-06 9.6000842e-07
+    + 100         5e-06       7.2e-05         6e-06      7.29e-06 6.9490134e-06
+    Difference at 98.0% confidence
+    	4.03e-06 +/- 1.63169e-06
+    	123.62% +/- 50.0519%
+    	(Student's t, pooled s = 4.96036e-06)
+    
+    p8-mid-dense-check vs. p64v3r-mid-dense-check
+    x statdir/p64v3r-mid-dense-check
+    + statdir/p8-mid-dense-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.277588      0.298965      0.287498     0.2878485  0.0049996003
+    + 100      0.356894      0.385163      0.372034    0.37136252  0.0074057173
+    Difference at 98.0% confidence
+    	0.083514 +/- 0.00207836
+    	29.0132% +/- 0.722034%
+    	(Student's t, pooled s = 0.00631825)
+    
+    p8-mid-mid-check vs. p64v3r-mid-mid-check
+    x statdir/p64v3r-mid-mid-check
+    + statdir/p8-mid-mid-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.013536      0.017466      0.014914    0.01484559 0.00084153774
+    + 100      0.022145      0.027083      0.023998    0.02401451  0.0011494921
+    Difference at 98.0% confidence
+    	0.00916892 +/- 0.000331365
+    	61.7619% +/- 2.23207%
+    	(Student's t, pooled s = 0.00100735)
+    
+    p8-mid-sparse-check vs. p64v3r-mid-sparse-check
+    x statdir/p64v3r-mid-sparse-check
+    + statdir/p8-mid-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100       0.00019      0.000325      0.000205    0.00022475 3.2637704e-05
+    + 100      0.000355      0.000984      0.000394     0.0004307 8.8662395e-05
+    Difference at 98.0% confidence
+    	0.00020595 +/- 2.19758e-05
+    	91.6352% +/- 9.77787%
+    	(Student's t, pooled s = 6.68066e-05)
+    
+    p8-small-sparse-check vs. p64v3r-small-sparse-check
+    x statdir/p64v3r-small-sparse-check
+    + statdir/p8-small-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.008668      0.012785       0.00958    0.00969532 0.00078296108
+    + 100      0.015597        0.0238      0.017201    0.01740783  0.0012612985
+    Difference at 98.0% confidence
+    	0.00771251 +/- 0.000345307
+    	79.5488% +/- 3.56159%
+    	(Student's t, pooled s = 0.00104974)
+    
+    p8-huge-sparse-populate vs. p64v3r-huge-sparse-populate
+    x statdir/p64v3r-huge-sparse-populate
+    + statdir/p8-huge-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100             0       3.5e-05             0       4.6e-07 3.5030146e-06
+    + 100         1e-06       5.2e-05         1e-06      1.54e-06 5.0998515e-06
+    No difference proven at 98.0% confidence
+    
+    p8-large-sparse-populate vs. p64v3r-large-sparse-populate
+    x statdir/p64v3r-large-sparse-populate
+    + statdir/p8-large-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100         1e-06       2.8e-05         1e-06      1.37e-06 2.7067256e-06
+    + 100         2e-06       5.5e-05         2e-06      3.12e-06 7.3116484e-06
+    No difference proven at 98.0% confidence
+    
+    p8-mid-dense-populate vs. p64v3r-mid-dense-populate
+    x statdir/p64v3r-mid-dense-populate
+    + statdir/p8-mid-dense-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.451669      0.488183      0.465988    0.46613407  0.0081586728
+    + 100      0.740399      0.806867      0.766752    0.76819697   0.012635936
+    Difference at 98.0% confidence
+    	0.302063 +/- 0.00349853
+    	64.8017% +/- 0.750542%
+    	(Student's t, pooled s = 0.0106356)
+    
+    p8-mid-mid-populate vs. p64v3r-mid-mid-populate
+    x statdir/p64v3r-mid-mid-populate
+    + statdir/p8-mid-mid-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.008563      0.014786      0.009512    0.00974717  0.0010219461
+    + 100      0.014691      0.021071      0.016368    0.01652004  0.0013394804
+    Difference at 98.0% confidence
+    	0.00677287 +/- 0.000391887
+    	69.4855% +/- 4.02052%
+    	(Student's t, pooled s = 0.00119134)
+    
+    p8-mid-sparse-populate vs. p64v3r-mid-sparse-populate
+    x statdir/p64v3r-mid-sparse-populate
+    + statdir/p8-mid-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100       8.8e-05      0.000404      0.000126    0.00013567 4.3521516e-05
+    + 100      0.000144      0.000361      0.000174     0.0001885 3.3777495e-05
+    Difference at 98.0% confidence
+    	5.283e-05 +/- 1.28142e-05
+    	38.9401% +/- 9.44514%
+    	(Student's t, pooled s = 3.89554e-05)
+    
+    p8-small-sparse-populate vs. p64v3r-small-sparse-populate
+    x statdir/p64v3r-small-sparse-populate
+    + statdir/p8-small-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.005811       0.00979      0.006589     0.0067828 0.00076679174
+    + 100      0.009098      0.012777      0.010113    0.01024148 0.00073780872
+    Difference at 98.0% confidence
+    	0.00345868 +/- 0.000247512
+    	50.9919% +/- 3.64911%
+    	(Student's t, pooled s = 0.00075244)
+    
+As I suspected, it's significantly slower or the same in most cases.
+
+#### p32
+
+How about 32 bit slots?
+
+    p32-huge-sparse-check vs. p64v3r-huge-sparse-check
+    x statdir/p64v3r-huge-sparse-check
+    + statdir/p32-huge-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100         1e-06         6e-06         2e-06      1.75e-06 6.2563099e-07
+    + 100         1e-06         1e-05         2e-06      1.99e-06 1.2987562e-06
+    No difference proven at 98.0% confidence
+    
+    p32-large-sparse-check vs. p64v3r-large-sparse-check
+    x statdir/p64v3r-large-sparse-check
+    + statdir/p32-large-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100         3e-06       1.3e-05         3e-06      3.47e-06 1.2669457e-06
+    + 100         3e-06       1.9e-05         4e-06      4.72e-06 2.4124257e-06
+    Difference at 98.0% confidence
+    	1.25e-06 +/- 6.33806e-07
+    	36.0231% +/- 18.2653%
+    	(Student's t, pooled s = 1.92678e-06)
+    
+    p32-mid-dense-check vs. p64v3r-mid-dense-check
+    x statdir/p64v3r-mid-dense-check
+    + statdir/p32-mid-dense-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.283639      0.362975      0.297368    0.29950793   0.012709457
+    + 100      0.278536      0.302758      0.288494    0.28898716  0.0050136061
+    Difference at 98.0% confidence
+    	-0.0105208 +/- 0.00317792
+    	-3.51268% +/- 1.06105%
+    	(Student's t, pooled s = 0.00966091)
+    
+    p32-mid-mid-check vs. p64v3r-mid-mid-check
+    x statdir/p64v3r-mid-mid-check
+    + statdir/p32-mid-mid-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.013604      0.016902      0.014839    0.01486397 0.00079581827
+    + 100      0.014425      0.020254      0.015942    0.01593847 0.00098105876
+    Difference at 98.0% confidence
+    	0.0010745 +/- 0.000293832
+    	7.22889% +/- 1.97681%
+    	(Student's t, pooled s = 0.000893253)
+    
+    p32-mid-sparse-check vs. p64v3r-mid-sparse-check
+    x statdir/p64v3r-mid-sparse-check
+    + statdir/p32-mid-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.000191      0.000343      0.000207    0.00021674 2.6079761e-05
+    + 100      0.000237      0.000366      0.000261    0.00026546 2.0627245e-05
+    Difference at 98.0% confidence
+    	4.872e-05 +/- 7.73421e-06
+    	22.4785% +/- 3.56843%
+    	(Student's t, pooled s = 2.35121e-05)
+    
+    p32-small-sparse-check vs. p64v3r-small-sparse-check
+    x statdir/p64v3r-small-sparse-check
+    + statdir/p32-small-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.008656      0.012224      0.009492    0.00972584 0.00078972951
+    + 100       0.01102      0.015438      0.012323      0.012476 0.00091128688
+    Difference at 98.0% confidence
+    	0.00275016 +/- 0.000280485
+    	28.2768% +/- 2.88391%
+    	(Student's t, pooled s = 0.000852677)
+    
+    p32-huge-sparse-populate vs. p64v3r-huge-sparse-populate
+    x statdir/p64v3r-huge-sparse-populate
+    + statdir/p32-huge-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100             0       3.6e-05             0       8.2e-07  3.588365e-06
+    + 100             0       4.2e-05             0       7.7e-07   4.25893e-06
+    No difference proven at 98.0% confidence
+    
+    p32-large-sparse-populate vs. p64v3r-large-sparse-populate
+    x statdir/p64v3r-large-sparse-populate
+    + statdir/p32-large-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100         1e-06       3.3e-05         1e-06      1.73e-06 3.3085595e-06
+    + 100         1e-06      0.000146         1e-06      2.82e-06 1.4834699e-05
+    No difference proven at 98.0% confidence
+    
+    p32-mid-dense-populate vs. p64v3r-mid-dense-populate
+    x statdir/p64v3r-mid-dense-populate
+    + statdir/p32-mid-dense-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.440756      0.477085      0.455543    0.45674124  0.0070963826
+    + 100      0.442975      0.527865      0.458514    0.45984113   0.010758253
+    Difference at 98.0% confidence
+    	0.00309989 +/- 0.00299773
+    	0.678697% +/- 0.65633%
+    	(Student's t, pooled s = 0.00911314)
+    
+    p32-mid-mid-populate vs. p64v3r-mid-mid-populate
+    x statdir/p64v3r-mid-mid-populate
+    + statdir/p32-mid-mid-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.008337      0.013709      0.009517     0.0097025 0.00095346873
+    + 100      0.008336      0.012756      0.009561     0.0096487  0.0008268858
+    No difference proven at 98.0% confidence
+    
+    p32-mid-sparse-populate vs. p64v3r-mid-sparse-populate
+    x statdir/p64v3r-mid-sparse-populate
+    + statdir/p32-mid-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100       9.6e-05      0.000227      0.000104    0.00012007 2.6063735e-05
+    + 100       9.9e-05      0.000185      0.000128    0.00012949 2.2415045e-05
+    Difference at 98.0% confidence
+    	9.42e-06 +/- 7.996e-06
+    	7.84542% +/- 6.65945%
+    	(Student's t, pooled s = 2.43079e-05)
+    
+    p32-small-sparse-populate vs. p64v3r-small-sparse-populate
+    x statdir/p64v3r-small-sparse-populate
+    + statdir/p32-small-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.005822      0.008629      0.006361    0.00653281 0.00054711725
+    + 100      0.005814      0.008752      0.006531    0.00659868 0.00055600381
+    No difference proven at 98.0% confidence
+
+Huh. Not bad. It's overall slightly worse, but not much at all. It
+should definitely be good to go for a 32 bit architectures.
+
 ## Conclusion
 
 `p64v3r` is the best implementation. Yes, `p64v3r3` might be a hair
