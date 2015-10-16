@@ -5,7 +5,7 @@ bitmaps used for finding set elements.
 
 Imagine the earlier test I did for bitmap intersections
 (https://github.com/art4711/bmap), but now we need to find out which
-bits were actually set after the interection.
+bits were actually set after the intersection.
 
 ## The problem
 
@@ -1233,3 +1233,13 @@ It looks like we got rid of the almost all the problems that
 a small case it's not really worth it to do anything about
 it. Populate remains slower, but that's quite natural and I can't see
 any way of making it more efficient.
+
+## Conclusion
+
+`p64v3r` is the best implementation. Yes, `p64v3r3` might be a hair
+faster in one very special case, but the code is bigger and uglier.
+
+For my application the tests are not enough, we also need to test
+iterating over the sets with values that aren't equal to the
+previously returned value + 1, but that's a problem I can't really
+simulate here.
