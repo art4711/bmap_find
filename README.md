@@ -107,6 +107,11 @@ Like `p64` but upside down and with a dynamic number of levels.
 
 Like `p64v3` but with `first_set` implemented recursively.
 
+### p64v3r2 and p64v2r3
+
+Loke `p64v2r`, but testing two different ways of starting the
+recursion.
+
 ## The tests
 
 ### populate
@@ -311,7 +316,7 @@ the actual result there's one initial cache miss and then the numbers
 hover between 0 and 0.000001 after which the measurements are
 truncated. This is useless.
 
-But all the other tests show a consistent 2.1-2.2x slowdown. This is
+But all the other tests show a consistent 3.1-3.2x slowdown. This is
 expected and actually lower than I feared. This means that the extra
 cost for p64 won't be in populating the array.
 
