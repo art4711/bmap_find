@@ -980,3 +980,256 @@ bitmap" optimization which used to be done with code written with the
 level hardcoded to 0 which can simplify a lot of calculations. Now, the
 level is passed as a function argument.
 
+#### p64v3r2
+
+`p64v3r2` is like `p64v3r` but instead of just doing the natrual thing
+and just starting the recursion at the full bitmap, we do the quick
+check of the full bitmap, then start the recursion at the highest
+level.
+
+Comparing to `p64v3r`:
+
+    p64v3r2-mid-dense-check vs. p64v3r-mid-dense-check
+    x statdir/p64v3r-mid-dense-check
+    + statdir/p64v3r2-mid-dense-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.284074      0.319683      0.295312    0.29636127  0.0068496646
+    + 100      0.247361      0.267703      0.256071    0.25619853  0.0044370252
+    Difference at 98.0% confidence
+    	-0.0401627 +/- 0.00189829
+    	-13.552% +/- 0.640534%
+    	(Student's t, pooled s = 0.00577084)
+    
+    p64v3r2-mid-mid-check vs. p64v3r-mid-mid-check
+    x statdir/p64v3r-mid-mid-check
+    + statdir/p64v3r2-mid-mid-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.013605      0.017748      0.014806    0.01488863 0.00086653615
+    + 100      0.019995      0.024699      0.021975    0.02202084 0.00095262276
+    Difference at 98.0% confidence
+    	0.00713221 +/- 0.000299537
+    	47.9037% +/- 2.01185%
+    	(Student's t, pooled s = 0.000910597)
+    
+    p64v3r2-mid-sparse-check vs. p64v3r-mid-sparse-check
+    x statdir/p64v3r-mid-sparse-check
+    + statdir/p64v3r2-mid-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.000205      0.000344      0.000207    0.00022428 3.0166903e-05
+    + 100      0.000292      0.000527      0.000333     0.0003473 5.0009797e-05
+    Difference at 98.0% confidence
+    	0.00012302 +/- 1.35848e-05
+    	54.8511% +/- 6.05705%
+    	(Student's t, pooled s = 4.12978e-05)
+
+`mid-dense` improves as expected, but two others get wrecked. In fact,
+let's compare to `p64v3`:
+
+    p64v3r2-huge-sparse-check vs. p64v3-huge-sparse-check
+    x statdir/p64v3-huge-sparse-check
+    + statdir/p64v3r2-huge-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100         2e-06       1.7e-05         2e-06      2.19e-06 1.5088627e-06
+    + 100         2e-06       1.7e-05         2e-06      2.19e-06 1.5088627e-06
+    No difference proven at 98.0% confidence
+    
+    p64v3r2-large-sparse-check vs. p64v3-large-sparse-check
+    x statdir/p64v3-large-sparse-check
+    + statdir/p64v3r2-large-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100         4e-06         6e-06         5e-06      4.67e-06 6.5219133e-07
+    + 100         3e-06       1.2e-05         4e-06      4.38e-06 1.5293757e-06
+    No difference proven at 98.0% confidence
+    
+    p64v3r2-mid-dense-check vs. p64v3-mid-dense-check
+    x statdir/p64v3-mid-dense-check
+    + statdir/p64v3r2-mid-dense-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.247342      0.327149      0.256359    0.25739302  0.0082802183
+    + 100      0.247361      0.267703      0.256071    0.25619853  0.0044370252
+    No difference proven at 98.0% confidence
+    
+    p64v3r2-mid-mid-check vs. p64v3-mid-mid-check
+    x statdir/p64v3-mid-mid-check
+    + statdir/p64v3r2-mid-mid-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.022475      0.026862      0.023973    0.02408233 0.00099462302
+    + 100      0.019995      0.024699      0.021975    0.02202084 0.00095262276
+    Difference at 98.0% confidence
+    	-0.00206149 +/- 0.000320344
+    	-8.56018% +/- 1.3302%
+    	(Student's t, pooled s = 0.000973849)
+    
+    p64v3r2-mid-sparse-check vs. p64v3-mid-sparse-check
+    x statdir/p64v3-mid-sparse-check
+    + statdir/p64v3r2-mid-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.000314      0.000575      0.000367    0.00037028  4.793853e-05
+    + 100      0.000292      0.000527      0.000333     0.0003473 5.0009797e-05
+    Difference at 98.0% confidence
+    	-2.298e-05 +/- 1.61135e-05
+    	-6.20611% +/- 4.3517%
+    	(Student's t, pooled s = 4.89851e-05)
+    
+    p64v3r2-small-sparse-check vs. p64v3-small-sparse-check
+    x statdir/p64v3-small-sparse-check
+    + statdir/p64v3r2-small-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.008628      0.011991      0.009568    0.00959736 0.00067287484
+    + 100      0.007501      0.010297      0.008279    0.00842107 0.00062092481
+    Difference at 98.0% confidence
+    	-0.00117629 +/- 0.000212967
+    	-12.2564% +/- 2.21901%
+    	(Student's t, pooled s = 0.000647421)
+
+Yup, the gains from `p64v3r` are almost wiped out. So it seems that it
+actually pays to start from the lower levels.
+
+#### p64v3r3
+
+Let's check that previous "so it seems that" statement. This is what
+`p64v3r3` is.
+
+Compared to `p64v3`:
+
+    p64v3r3-huge-sparse-check vs. p64v3-huge-sparse-check
+    x statdir/p64v3-huge-sparse-check
+    + statdir/p64v3r3-huge-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100         2e-06       1.7e-05         2e-06      2.19e-06 1.5088627e-06
+    + 100         1e-06         2e-06         1e-06      1.19e-06 3.9427724e-07
+    Difference at 98.0% confidence
+    	-1e-06 +/- 3.62746e-07
+    	-45.6621% +/- 16.5637%
+    	(Student's t, pooled s = 1.10275e-06)
+    
+    p64v3r3-large-sparse-check vs. p64v3-large-sparse-check
+    x statdir/p64v3-large-sparse-check
+    + statdir/p64v3r3-large-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100         4e-06         6e-06         5e-06      4.67e-06 6.5219133e-07
+    + 100         3e-06         4e-06         3e-06      3.07e-06  2.564324e-07
+    Difference at 98.0% confidence
+    	-1.6e-06 +/- 1.63004e-07
+    	-34.2612% +/- 3.49046%
+    	(Student's t, pooled s = 4.95536e-07)
+    
+    p64v3r3-mid-dense-check vs. p64v3-mid-dense-check
+    x statdir/p64v3-mid-dense-check
+    + statdir/p64v3r3-mid-dense-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.247342      0.327149      0.256359    0.25739302  0.0082802183
+    + 100      0.234121      0.254807      0.241518    0.24205306   0.004155125
+    Difference at 98.0% confidence
+    	-0.01534 +/- 0.00215487
+    	-5.95974% +/- 0.837192%
+    	(Student's t, pooled s = 0.00655084)
+    
+    p64v3r3-mid-mid-check vs. p64v3-mid-mid-check
+    x statdir/p64v3-mid-mid-check
+    + statdir/p64v3r3-mid-mid-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.022475      0.026862      0.023973    0.02408233 0.00099462302
+    + 100      0.012052       0.01477      0.013144    0.01313037 0.00077121887
+    Difference at 98.0% confidence
+    	-0.010952 +/- 0.000292748
+    	-45.4772% +/- 1.21562%
+    	(Student's t, pooled s = 0.000889959)
+    
+    p64v3r3-mid-sparse-check vs. p64v3-mid-sparse-check
+    x statdir/p64v3-mid-sparse-check
+    + statdir/p64v3r3-mid-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.000314      0.000575      0.000367    0.00037028  4.793853e-05
+    + 100      0.000179      0.000318      0.000199    0.00020605 2.3942851e-05
+    Difference at 98.0% confidence
+    	-0.00016423 +/- 1.24639e-05
+    	-44.3529% +/- 3.36607%
+    	(Student's t, pooled s = 3.78904e-05)
+    
+    p64v3r3-small-sparse-check vs. p64v3-small-sparse-check
+    x statdir/p64v3-small-sparse-check
+    + statdir/p64v3r3-small-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.008628      0.011991      0.009568    0.00959736 0.00067287484
+    + 100      0.007581      0.009733      0.008285    0.00830776 0.00047237597
+    Difference at 98.0% confidence
+    	-0.0012896 +/- 0.000191228
+    	-13.437% +/- 1.9925%
+    	(Student's t, pooled s = 0.000581335)
+
+Improvement on all sets. We can see the same against `p64v3r2`. So it
+seems we have our best candidate implementation. How does it compare
+to `simple`:
+
+    p64v3r3-huge-sparse-check vs. simple-huge-sparse-check
+    x statdir/simple-huge-sparse-check
+    + statdir/p64v3r3-huge-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.000856      0.001234      0.000919    0.00093814 6.6426236e-05
+    + 100         1e-06         2e-06         1e-06      1.19e-06 3.9427724e-07
+    Difference at 98.0% confidence
+    	-0.00093695 +/- 1.5451e-05
+    	-99.8732% +/- 1.64698%
+    	(Student's t, pooled s = 4.69713e-05)
+    
+    p64v3r3-large-sparse-check vs. simple-large-sparse-check
+    x statdir/simple-large-sparse-check
+    + statdir/p64v3r3-large-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100       0.00076      0.001716      0.000779    0.00083314 0.00013628646
+    + 100         3e-06         4e-06         3e-06      3.07e-06  2.564324e-07
+    Difference at 98.0% confidence
+    	-0.00083007 +/- 3.17003e-05
+    	-99.6315% +/- 3.80492%
+    	(Student's t, pooled s = 9.63693e-05)
+    
+    p64v3r3-mid-dense-check vs. simple-mid-dense-check
+    x statdir/simple-mid-dense-check
+    + statdir/p64v3r3-mid-dense-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.220685      0.254971      0.228038    0.22901875  0.0054344739
+    + 100      0.234121      0.254807      0.241518    0.24205306   0.004155125
+    Difference at 98.0% confidence
+    	0.0130343 +/- 0.0015912
+    	5.69137% +/- 0.694792%
+    	(Student's t, pooled s = 0.00483728)
+    
+    p64v3r3-mid-mid-check vs. simple-mid-mid-check
+    x statdir/simple-mid-mid-check
+    + statdir/p64v3r3-mid-mid-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.010274      0.017926      0.010719    0.01107091  0.0012050884
+    + 100      0.012052       0.01477      0.013144    0.01313037 0.00077121887
+    Difference at 98.0% confidence
+    	0.00205946 +/- 0.00033279
+    	18.6024% +/- 3.00599%
+    	(Student's t, pooled s = 0.00101169)
+    
+    p64v3r3-mid-sparse-check vs. simple-mid-sparse-check
+    x statdir/simple-mid-sparse-check
+    + statdir/p64v3r3-mid-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100       0.00084      0.002878      0.000974     0.0009775 0.00021171357
+    + 100      0.000179      0.000318      0.000199    0.00020605 2.3942851e-05
+    Difference at 98.0% confidence
+    	-0.00077145 +/- 4.95585e-05
+    	-78.9207% +/- 5.06992%
+    	(Student's t, pooled s = 0.000150658)
+    
+    p64v3r3-small-sparse-check vs. simple-small-sparse-check
+    x statdir/simple-small-sparse-check
+    + statdir/p64v3r3-small-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.004232       0.00537      0.004442    0.00451139 0.00025890527
+    + 100      0.007581      0.009733      0.008285    0.00830776 0.00047237597
+    Difference at 98.0% confidence
+    	0.00379637 +/- 0.000125296
+    	84.1508% +/- 2.77732%
+    	(Student's t, pooled s = 0.000380901)
+
+It looks like we got rid of the almost all the problems that
+`p64-naive` had. `small-sparse` is still a bit wonky, but that's such
+a small case it's not really worth it to do anything about
+it. Populate remains slower, but that's quite natural and I can't see
+any way of making it more efficient.

@@ -504,3 +504,56 @@ p64v3r_first_set(void *v, unsigned int b)
 }
 
 struct bmap_interface bmap_p64v3r = { p64v3_alloc, free, p64v3_set, p64v3_isset, p64v3r_first_set };
+
+static unsigned int
+p64v3r2_first_set(void *v, unsigned int b)
+{
+	struct p64v3_bmap *pb = v;
+	unsigned int slot;
+	uint64_t masked;
+
+	if (b > pb->sz)
+		return BMAP_INVALID_OFF;
+
+	/*
+	 * quick check for the initial lvl 0 slot being populated.
+	 * This saves a lot of effort in very dense bitmaps.
+	 */
+	slot = p64v3_slot(b, 0);
+	masked = ~(p64v3_mask(b, 0) - 1) & pb->lvl[0][slot];
+	b = slot << log2_64;
+	if (masked)
+		return b + __builtin_ffsll(masked) - 1;
+	b += 64;
+	return p64v3_first_set_r(pb, b, pb->levels - 1);
+}
+
+struct bmap_interface bmap_p64v3r2 = { p64v3_alloc, free, p64v3_set, p64v3_isset, p64v3r2_first_set };
+
+static unsigned int
+p64v3r3_first_set(void *v, unsigned int b)
+{
+	struct p64v3_bmap *pb = v;
+	unsigned int slot;
+	uint64_t masked;
+
+	if (b > pb->sz)
+		return BMAP_INVALID_OFF;
+
+	/*
+	 * quick check for the initial lvl 0 slot being populated.
+	 * This saves a lot of effort in very dense bitmaps.
+	 */
+	slot = p64v3_slot(b, 0);
+	masked = ~(p64v3_mask(b, 0) - 1) & pb->lvl[0][slot];
+	b = slot << log2_64;
+	if (masked)
+		return b + __builtin_ffsll(masked) - 1;
+	b += 64;
+	if (b > pb->sz)
+		return BMAP_INVALID_OFF;
+	return p64v3_first_set_r(pb, b, 1);
+}
+
+struct bmap_interface bmap_p64v3r3 = { p64v3_alloc, free, p64v3_set, p64v3_isset, p64v3r3_first_set };
+
