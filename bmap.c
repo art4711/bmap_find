@@ -225,3 +225,120 @@ p64_first_set_no_l5_peek(void *v, unsigned int b)
 }
 
 struct bmap_interface bmap_p64_naive = { p64_alloc, free, p64_set, p64_isset, p64_first_set_no_l5_peek };
+
+static const uint64_t log2_64 = 6;
+static const uint64_t p64v2_levels = 6;
+
+/*
+ * 64 bit pyramid v2.
+ */
+
+/*
+ * The types are uint64_t (despite only dealing with 32 bit values) to
+ * make the math simpler.
+ */
+
+/* log2 of how many bits one slot covers at this level. */
+static inline uint64_t
+p64v2_lm(uint64_t l)
+{
+	return (p64v2_levels - l - 1) * log2_64;
+}
+
+static inline uint64_t
+p64v2_slot(uint64_t b, uint64_t l)
+{
+	return b >> (log2_64 + p64v2_lm(l));
+}
+
+static inline uint64_t
+p64v2_mask(uint64_t b, uint64_t l)
+{
+	return 1LLU << ((b >> p64v2_lm(l)) & ((1 << log2_64) - 1));
+}
+
+static inline uint64_t *
+p64v2_pbslot(struct p64_bmap *pb, uint64_t b, uint64_t l)
+{
+	return &pb->lvl[l][p64v2_slot(b, l)];
+}
+
+static void *
+p64v2_alloc(size_t nbits)
+{
+	struct p64_bmap *pb;
+	size_t sz;
+	int l;
+
+	sz = sizeof(*pb);
+	for (l = 0; l < 6; l++) {
+		sz += (p64v2_slot(nbits + 63, l) + 1) * sizeof(uint64_t);
+	}
+	pb = calloc(sz, 1);
+	uint64_t *a = (uint64_t *)(pb + 1);
+	for (l = 0; l < 6; l++) {
+		pb->lvl[l] = a;
+		a += p64v2_slot(nbits + 63, l) + 1;
+	}
+	pb->sz = nbits;
+	return pb;
+}
+
+static void
+p64v2_set(void *v, unsigned int b)
+{
+	struct p64_bmap *pb = v;
+	int l;
+
+	for (l = 0; l < p64v2_levels; l++) {
+		*p64v2_pbslot(pb, b, l) |= p64v2_mask(b, l);
+	}
+}
+
+static bool
+p64v2_isset(void *v, unsigned int b)
+{
+	struct p64_bmap *pb = v;
+	return (*p64v2_pbslot(pb, b, 5) & p64v2_mask(b, 5)) != 0;
+}
+
+static unsigned int
+p64v2_first_set(void *v, unsigned int b)
+{
+	struct p64_bmap *pb = v;
+	unsigned int l;
+	uint64_t masked;
+	unsigned int slot;
+
+	if (b > pb->sz)
+		return BMAP_INVALID_OFF;
+
+	/*
+	 * quick check for the initial lvl 5 slot being populated.
+	 * This saves a lot of effort in very dense bitmaps.
+	 */
+	slot = p64v2_slot(b, 5);
+	masked = ~(p64v2_mask(b, 5) - 1) & pb->lvl[5][slot];
+	b = slot << log2_64;
+	if (masked)
+		return b + __builtin_ffsll(masked) - 1;
+	b += 64;
+
+	for (l = 0; l < 6; l++) {
+		slot = p64v2_slot(b, l);
+		masked = ~(p64v2_mask(b, l) - 1) & pb->lvl[l][slot];
+		if (masked) {
+			unsigned int min = ((slot << log2_64) + __builtin_ffsll(masked) - 1) << p64v2_lm(l);
+			if (min > b)
+				b = min;
+		} else {
+			if (l == 0)
+				return BMAP_INVALID_OFF;
+			b = (slot + 1) << p64v2_lm(l - 1);
+			l -= 2;
+		}
+	}
+	return b;
+}
+
+struct bmap_interface bmap_p64v2 = { p64v2_alloc, free, p64v2_set, p64v2_isset, p64v2_first_set };

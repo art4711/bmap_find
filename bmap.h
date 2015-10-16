@@ -31,3 +31,4 @@ extern struct bmap_interface bmap_dumb;
 extern struct bmap_interface bmap_simple;
 extern struct bmap_interface bmap_p64;
 extern struct bmap_interface bmap_p64_naive;
+extern struct bmap_interface bmap_p64v2;
