@@ -133,7 +133,7 @@ we used to populate the bitmap.
 
 I haven't polished the sizes of the sets or been too ambitious in
 generating many sets, but the current results show what I need to
-show. If someone has a different use case, feel free to add tests
+know. If someone has a different use case, feel free to add tests
 and make a pull request. The most interesting case here would
 probably be to add a set with many clusters and large mostly empty
 areas between.
@@ -910,7 +910,7 @@ dense bitmaps, if that optimization missed we started at the top level
 and went down (backtracking as necessary). But the recursion shows us
 that it's equally valid to start at the bitmap level and let the
 recursion handle going back to the top level if it thinks it's
-necessary. At this moment I the difference between the two approaches
+necessary. At this point the difference between the two approaches
 hasn't been tested, the recursion just made "start at 0 and backtrack
 as necessary" the more natural implementation.
 
