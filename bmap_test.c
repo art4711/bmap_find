@@ -36,6 +36,7 @@ struct {
 	{ &bmap_p64_naive, "p64-naive" },
 	{ &bmap_p64v2, "p64v2" },
 	{ &bmap_p64v3, "p64v3" },
+	{ &bmap_p64v3r, "p64v3r" },
 };
 
 static void

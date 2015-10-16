@@ -473,3 +473,34 @@ p64v3_first_set(void *v, unsigned int b)
 }
 
 struct bmap_interface bmap_p64v3 = { p64v3_alloc, free, p64v3_set, p64v3_isset, p64v3_first_set };
+
+static unsigned int
+p64v3_first_set_r(struct p64v3_bmap *pb, uint64_t b, uint64_t l)
+{
+	uint64_t slot = p64v3_slot(b, l);
+	uint64_t masked = ~(p64v3_mask(b, l) - 1) & pb->lvl[l][slot];
+	if (masked) {
+		uint64_t m = ((slot << log2_64) + __builtin_ffsll(masked) - 1) << p64v3_bpb(l);
+		if (l == 0)
+			return m;
+		if (m > b)
+			b = m;
+		return p64v3_first_set_r(pb, b, l - 1);
+	} else {
+		if (l == pb->levels - 1)
+			return BMAP_INVALID_OFF;
+		b = (slot + 1) << p64v3_bps(l);
+		return p64v3_first_set_r(pb, b, l + 1);
+	}
+}
+
+static unsigned int
+p64v3r_first_set(void *v, unsigned int b)
+{
+	struct p64v3_bmap *pb = v;
+	if (b > pb->sz)
+		return BMAP_INVALID_OFF;
+	return p64v3_first_set_r(pb, b, 0);
+}
+
+struct bmap_interface bmap_p64v3r = { p64v3_alloc, free, p64v3_set, p64v3_isset, p64v3r_first_set };

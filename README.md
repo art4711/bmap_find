@@ -103,6 +103,10 @@ Same as `p64`, but with cleaner code.
 
 Like `p64` but upside down and with a dynamic number of levels.
 
+### p64v3r
+
+Like `p64v3` but with `first_set` implemented recursively.
+
 ## The tests
 
 ### populate
@@ -870,7 +874,109 @@ the number of levels we need, this should help the smaller bitmaps.
     	-19.036% +/- 2.60894%
     	(Student's t, pooled s = 0.000650203)
 
-
 As expected, this helps `small-sparse`, `mid-sparse` and `mid-mid`
 which were the sets that needed help (see the tests for p64-naive
 vs. simple). Unfortunately populate becomes even slower.
+
+#### p64v3r
+
+The for loop in all p64* `first_set` had code smell. I really didn't
+like the adding/subtracting 2 from l just to backtrack. It worked but
+it was surprising and ugly. With `p64v3` the loop made even less sense.
+we're iterating down from `pb->levels - 1` ugh. This would look much
+cleaner with recursion. `p64v3r` is the recursive implementation.
+
+The code works like this: We find our slot, mask out all bits that we
+aren't allowed to match (just like before), if the masked out slot is
+zero it means that the higher levels led us to a false positive (we
+masked out bits that were set), this means that we have to backtrack
+to higher level (this is the `l += 2` in the for loop versions). If we
+have a hit, go down to a lower level.
+
+Hit when level is 0, means we have a result. Backtrack when we're at
+the top level already means we have a negative result.
+
+Each level we go up or down we adjust `b` to the lowest possible value
+it can have.
+
+This also leads the a surprising algorithm change. `p64` and all
+subsequent p64* started with checking the full bitmap to optimize
+dense bitmaps, if that optimization missed we started at the top level
+and went down (backtracking as necessary). But the recursion shows us
+that it's equally valid to start at the bitmap level and let the
+recursion handle going back to the top level if it thinks it's
+necessary. At this moment I the difference between the two approaches
+hasn't been tested, the recursion just made "start at 0 and backtrack
+as necessary" the more natural implementation.
+
+Comparing against `p64v3`:
+
+    p64v3r-huge-sparse-check vs. p64v3-huge-sparse-check
+    x statdir/p64v3-huge-sparse-check
+    + statdir/p64v3r-huge-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100         2e-06       1.7e-05         2e-06      2.19e-06 1.5088627e-06
+    + 100         1e-06         9e-06         1e-06      1.23e-06 8.6287047e-07
+    Difference at 98.0% confidence
+    	-9.6e-07 +/- 4.04297e-07
+    	-43.8356% +/- 18.461%
+    	(Student's t, pooled s = 1.22907e-06)
+    
+    p64v3r-large-sparse-check vs. p64v3-large-sparse-check
+    x statdir/p64v3-large-sparse-check
+    + statdir/p64v3r-large-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100         4e-06         6e-06         5e-06      4.67e-06 6.5219133e-07
+    + 100         3e-06       1.9e-05         3e-06      3.49e-06 2.0024984e-06
+    Difference at 98.0% confidence
+    	-1.18e-06 +/- 4.89862e-07
+    	-25.2677% +/- 10.4896%
+    	(Student's t, pooled s = 1.48919e-06)
+    
+    p64v3r-mid-dense-check vs. p64v3-mid-dense-check
+    x statdir/p64v3-mid-dense-check
+    + statdir/p64v3r-mid-dense-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.247342      0.327149      0.256359    0.25739302  0.0082802183
+    + 100      0.284968      0.308148      0.295692    0.29589157  0.0054489201
+    Difference at 98.0% confidence
+    	0.0384986 +/- 0.00230559
+    	14.9571% +/- 0.895747%
+    	(Student's t, pooled s = 0.00700902)
+    
+    p64v3r-mid-mid-check vs. p64v3-mid-mid-check
+    x statdir/p64v3-mid-mid-check
+    + statdir/p64v3r-mid-mid-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.022475      0.026862      0.023973    0.02408233 0.00099462302
+    + 100      0.013548      0.017706      0.014905    0.01498044 0.00075821271
+    Difference at 98.0% confidence
+    	-0.00910189 +/- 0.000290905
+    	-37.7949% +/- 1.20796%
+    	(Student's t, pooled s = 0.000884353)
+    
+    p64v3r-mid-sparse-check vs. p64v3-mid-sparse-check
+    x statdir/p64v3-mid-sparse-check
+    + statdir/p64v3r-mid-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.000314      0.000575      0.000367    0.00037028  4.793853e-05
+    + 100      0.000192      0.000353      0.000213    0.00022851 3.1715113e-05
+    Difference at 98.0% confidence
+    	-0.00014177 +/- 1.33698e-05
+    	-38.2872% +/- 3.61074%
+    	(Student's t, pooled s = 4.06445e-05)
+    
+    p64v3r-small-sparse-check vs. p64v3-small-sparse-check
+    x statdir/p64v3-small-sparse-check
+    + statdir/p64v3r-small-sparse-check
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.008628      0.011991      0.009568    0.00959736 0.00067287484
+    + 100      0.008726      0.011427      0.009686    0.00977493 0.00066371996
+    No difference proven at 98.0% confidence
+
+Decent performance increase overall except `mid-dense`. That slowdown
+can be explained by `mid-dense` almost always hitting the "check full
+bitmap" optimization which used to be done with code written with the
+level hardcoded to 0 which can simplify a lot of calculations. Now, the
+level is passed as a function argument.
+
