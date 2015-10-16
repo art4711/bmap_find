@@ -334,7 +334,7 @@ p64v2_first_set(void *v, unsigned int b)
 		} else {
 			if (l == 0)
 				return BMAP_INVALID_OFF;
-			b = (slot + 1) << p64v2_lm(l + 1);
+			b = (slot + 1) << p64v2_lm(l - 1);
 			l -= 2;
 		}
 	}
