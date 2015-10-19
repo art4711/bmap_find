@@ -399,13 +399,13 @@ p64v3_alloc(size_t nbits)
 	for (levels = 0; p64v3_slots_per_level(nbits, levels) > 1; levels++)
 		;
 	sz = sizeof(*pb);
+	levels++;
 	for (l = 0; l < levels; l++) {
 		sz += p64v3_slots_per_level(nbits, l) * sizeof(uint64_t);
 	}
-	levels++;
 	sz += levels * sizeof(uint64_t **);
 	pb = calloc(sz, 1);
-	uint64_t *a = (uint64_t *)((uint64_t **)(pb + 1) + levels);
+	uint64_t *a = (uint64_t *)&pb->lvl[levels];
 	for (l = 0; l < levels; l++) {
 		pb->lvl[l] = a;
 		a += p64v3_slots_per_level(nbits, l);
@@ -618,13 +618,13 @@ p8_alloc(size_t nbits)
 	for (levels = 0; p8_slots_per_level(nbits, levels) > 1; levels++)
 		;
 	sz = sizeof(*pb);
+	levels++;
 	for (l = 0; l < levels; l++) {
 		sz += p8_slots_per_level(nbits, l);
 	}
-	levels++;
 	sz += levels * sizeof(uint8_t **);
 	pb = calloc(sz, 1);
-	uint8_t *a = (uint8_t *)((uint8_t **)(pb + 1) + levels);
+	uint8_t *a = (uint8_t *)&pb->lvl[levels];
 	for (l = 0; l < levels; l++) {
 		pb->lvl[l] = a;
 		a += p8_slots_per_level(nbits, l);
@@ -743,13 +743,13 @@ p32_alloc(size_t nbits)
 	for (levels = 0; p32_slots_per_level(nbits, levels) > 1; levels++)
 		;
 	sz = sizeof(*pb);
+	levels++;
 	for (l = 0; l < levels; l++) {
 		sz += p32_slots_per_level(nbits, l) * sizeof(uint32_t);
 	}
-	levels++;
 	sz += levels * sizeof(uint32_t **);
 	pb = calloc(sz, 1);
-	uint32_t *a = (uint32_t *)((uint32_t **)(pb + 1) + levels);
+	uint32_t *a = (uint32_t *)&pb->lvl[levels];
 	for (l = 0; l < levels; l++) {
 		pb->lvl[l] = a;
 		a += p32_slots_per_level(nbits, l);
