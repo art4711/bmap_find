@@ -558,6 +558,54 @@ p64v3r3_first_set(void *v, unsigned int b)
 struct bmap_interface bmap_p64v3r3 = { p64v3_alloc, free, p64v3_set, p64v3_isset, p64v3r3_first_set };
 
 
+static void
+p64v3switch_set(void *v, unsigned int b)
+{
+	struct p64v3_bmap *pb = v;
+
+	switch (pb->levels) {
+	case 6:
+		*p64v3_pbslot(pb, b, 5) |= p64v3_mask(b, 5);
+	case 5:
+		*p64v3_pbslot(pb, b, 4) |= p64v3_mask(b, 4);
+	case 4:
+		*p64v3_pbslot(pb, b, 3) |= p64v3_mask(b, 3);
+	case 3:
+		*p64v3_pbslot(pb, b, 2) |= p64v3_mask(b, 2);
+	case 2:
+		*p64v3_pbslot(pb, b, 1) |= p64v3_mask(b, 1);
+	case 1:
+		*p64v3_pbslot(pb, b, 0) |= p64v3_mask(b, 0);
+	}
+}
+
+struct bmap_interface bmap_p64v3switch = { p64v3_alloc, free, p64v3switch_set, p64v3_isset, p64v3r_first_set };
+
+static void
+p64v3jump_set(void *v, unsigned int b)
+{
+	struct p64v3_bmap *pb = v;
+	const void * const ls[7] = {
+		NULL,
+		&&l_1,
+		&&l_2,
+		&&l_3,
+		&&l_4,
+		&&l_5,
+		&&l_6,
+	};
+	goto *ls[pb->levels];
+l_6:	*p64v3_pbslot(pb, b, 5) |= p64v3_mask(b, 5);
+l_5:	*p64v3_pbslot(pb, b, 4) |= p64v3_mask(b, 4);
+l_4:	*p64v3_pbslot(pb, b, 3) |= p64v3_mask(b, 3);
+l_3:	*p64v3_pbslot(pb, b, 2) |= p64v3_mask(b, 2);
+l_2:	*p64v3_pbslot(pb, b, 1) |= p64v3_mask(b, 1);
+l_1:	*p64v3_pbslot(pb, b, 0) |= p64v3_mask(b, 0);
+}
+
+struct bmap_interface bmap_p64v3jump = { p64v3_alloc, free, p64v3jump_set, p64v3_isset, p64v3r_first_set };
+
+
 /* Like p64, but p8 instead. */
 
 struct p8_bmap {

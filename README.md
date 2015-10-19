@@ -1236,8 +1236,7 @@ to `simple`:
 It looks like we got rid of the almost all the problems that
 `p64-naive` had. `small-sparse` is still a bit wonky, but that's such
 a small case it's not really worth it to do anything about
-it. Populate remains slower, but that's quite natural and I can't see
-any way of making it more efficient.
+it. Populate remains slower, we'll try to deal with it later.
 
 #### p8
 
@@ -1493,10 +1492,163 @@ How about 32 bit slots?
 Huh. Not bad. It's overall slightly worse, but not much at all. It
 should definitely be good to go for a 32 bit architectures.
 
+#### p64v3switch
+
+After putting this into the application I was actually dealing with
+it became apparent that populate actually matters. While searching
+through the bitmap significantly improved the overall performance,
+all the gains were eaten by the populate step.
+
+After reading the generated code it becomes quite obvious that we
+spend a lot of time dealing with the general case of there being
+a large amount of levels, while in reality we can only have 6.
+
+`p64v3switch` is an attempt to deal with that.
+
+    p64v3switch-huge-sparse-populate vs. p64v3r-huge-sparse-populate
+    x statdir/p64v3r-huge-sparse-populate
+    + statdir/p64v3switch-huge-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100             0       3.6e-05             0       8.2e-07  3.588365e-06
+    + 100             0         1e-06             0         8e-08 2.7265992e-07
+    No difference proven at 98.0% confidence
+    
+    p64v3switch-large-sparse-populate vs. p64v3r-large-sparse-populate
+    x statdir/p64v3r-large-sparse-populate
+    + statdir/p64v3switch-large-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100         1e-06       3.3e-05         1e-06      1.73e-06 3.3085595e-06
+    + 100         1e-06       1.4e-05         1e-06      1.13e-06       1.3e-06
+    No difference proven at 98.0% confidence
+    
+    p64v3switch-mid-dense-populate vs. p64v3r-mid-dense-populate
+    x statdir/p64v3r-mid-dense-populate
+    + statdir/p64v3switch-mid-dense-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.440756      0.477085      0.455543    0.45674124  0.0070963826
+    + 100      0.289989      0.316283      0.300275    0.30040975  0.0050334105
+    Difference at 98.0% confidence
+    	-0.156331 +/- 0.00202367
+    	-34.2276% +/- 0.443067%
+    	(Student's t, pooled s = 0.00615199)
+    
+    p64v3switch-mid-mid-populate vs. p64v3r-mid-mid-populate
+    x statdir/p64v3r-mid-mid-populate
+    + statdir/p64v3switch-mid-mid-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.008337      0.013709      0.009517     0.0097025 0.00095346873
+    + 100      0.005528      0.008702      0.006151    0.00634305 0.00066345116
+    Difference at 98.0% confidence
+    	-0.00335945 +/- 0.000270184
+    	-34.6246% +/- 2.78468%
+    	(Student's t, pooled s = 0.000821362)
+    
+    p64v3switch-mid-sparse-populate vs. p64v3r-mid-sparse-populate
+    x statdir/p64v3r-mid-sparse-populate
+    + statdir/p64v3switch-mid-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100       9.6e-05      0.000227      0.000104    0.00012007 2.6063735e-05
+    + 100       5.5e-05      0.000163       7.6e-05     8.016e-05 2.0539059e-05
+    Difference at 98.0% confidence
+    	-3.991e-05 +/- 7.71858e-06
+    	-33.2389% +/- 6.4284%
+    	(Student's t, pooled s = 2.34646e-05)
+    
+    p64v3switch-small-sparse-populate vs. p64v3r-small-sparse-populate
+    x statdir/p64v3r-small-sparse-populate
+    + statdir/p64v3switch-small-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.005822      0.008629      0.006361    0.00653281 0.00054711725
+    + 100      0.003587      0.005177      0.003918     0.0040386 0.00038855557
+    Difference at 98.0% confidence
+    	-0.00249421 +/- 0.000156087
+    	-38.1797% +/- 2.38928%
+    	(Student's t, pooled s = 0.000474506)
+    
+    p64v3jump-huge-sparse-populate vs. p64v3r-huge-sparse-populate
+    x statdir/p64v3r-huge-sparse-populate
+    + statdir/p64v3jump-huge-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100             0       3.6e-05             0       8.2e-07  3.588365e-06
+    + 100             0         9e-06             0       3.6e-07  9.797959e-07
+    No difference proven at 98.0% confidence
+    
+    p64v3jump-large-sparse-populate vs. p64v3r-large-sparse-populate
+    x statdir/p64v3r-large-sparse-populate
+    + statdir/p64v3jump-large-sparse-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100         1e-06       3.3e-05         1e-06      1.73e-06 3.3085595e-06
+    + 100         1e-06         1e-05         1e-06      1.17e-06  1.137559e-06
+    No difference proven at 98.0% confidence
+    
+    p64v3jump-mid-dense-populate vs. p64v3r-mid-dense-populate
+    x statdir/p64v3r-mid-dense-populate
+    + statdir/p64v3jump-mid-dense-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.440756      0.477085      0.455543    0.45674124  0.0070963826
+    + 100      0.286183      0.342344      0.295782    0.29644032  0.0071324367
+    Difference at 98.0% confidence
+    	-0.160301 +/- 0.00234026
+    	-35.0967% +/- 0.512383%
+    	(Student's t, pooled s = 0.00711443)
+
+Look at them numbers. Allowing the compiler to precompute some
+constants really helps. I'm generally not a big fan of unrolling
+loops, I consider most inlining and loop unrolling to be
+counter-productive (code size is often more important than avoiding
+branches when you're dealing with a large system), but applied
+carefully and conservatively it can help.
+
+#### p64v3jump
+
+Since we're already making the code ugly, let's go full out. I happen
+to know that gcc (the version I use) will generate a jump table for
+that switch. But there is no way to convince gcc that `pb->levels` is
+always in range of the jump table. So before doing a lookup in the
+jump table gcc has to make sure that pb->levels is in range. That's an
+extra branch. Also, the generated code seems to be jumping back and
+forth from the jump table instead of generating more straightforward
+code. Even though the branch predictor should always predict this
+correctly, let's try to improve it.
+
+`p64v3jump` does that. We're now deep into "shaving to lose weight"
+territory. To achieve this we use a little known feature of gcc:
+computed gotos and labels as values. If it wasn't clear, this is
+far beyond standard C. 
+
+    p64v3jump-mid-dense-populate vs. p64v3switch-mid-dense-populate
+    x statdir/p64v3switch-mid-dense-populate
+    + statdir/p64v3jump-mid-dense-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.289989      0.316283      0.300275    0.30040975  0.0050334105
+    + 100      0.286183      0.342344      0.295782    0.29644032  0.0071324367
+    Difference at 98.0% confidence
+    	-0.00396943 +/- 0.00203052
+    	-1.32134% +/- 0.675916%
+    	(Student's t, pooled s = 0.0061728)
+    
+    p64v3jump-mid-mid-populate vs. p64v3switch-mid-mid-populate
+    x statdir/p64v3switch-mid-mid-populate
+    + statdir/p64v3jump-mid-mid-populate
+        N           Min           Max        Median           Avg        Stddev
+    x 100      0.005528      0.008702      0.006151    0.00634305 0.00066345116
+    + 100      0.005461      0.007931      0.005996    0.00614494 0.00053166358
+    Difference at 98.0% confidence
+    	-0.00019811 +/- 0.000197756
+    	-3.12326% +/- 3.11767%
+    	(Student's t, pooled s = 0.00060118)
+
+Let's just show these two results. The rest is noise, too few
+calls. So it is maybe microscopically faster, but it is far below the
+noise level of my test machine.
+
 ## Conclusion
 
-`p64v3r` is the best implementation. Yes, `p64v3r3` might be a hair
-faster in one very special case, but the code is bigger and uglier.
+`p64v3r` is the best implementation for first_set. Yes, `p64v3r3`
+might be a hair faster in one very special case, but the code is
+bigger and uglier. For populate we probably want to use the switch
+version with the same argument - the jump table might be a hair
+faster, but it's horribly ugly.
 
 For my application the tests are not enough, we also need to test
 iterating over the sets with values that aren't equal to the

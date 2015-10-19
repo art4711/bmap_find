@@ -41,6 +41,8 @@ struct {
 	{ &bmap_p64v3r3, "p64v3r3" },
 	{ &bmap_p8, "p8" },
 	{ &bmap_p32, "p32" },
+	{ &bmap_p64v3switch, "p64v3switch" },
+	{ &bmap_p64v3jump, "p64v3jump" },
 };
 
 static void

@@ -38,3 +38,5 @@ extern struct bmap_interface bmap_p64v3r2;
 extern struct bmap_interface bmap_p64v3r3;
 extern struct bmap_interface bmap_p8;
 extern struct bmap_interface bmap_p32;
+extern struct bmap_interface bmap_p64v3switch;
+extern struct bmap_interface bmap_p64v3jump;
