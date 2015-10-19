@@ -1602,19 +1602,20 @@ carefully and conservatively it can help.
 #### p64v3jump
 
 Since we're already making the code ugly, let's go full out. I happen
-to know that gcc (the version I use) will generate a jump table for
-that switch. But there is no way to convince gcc that `pb->levels` is
-always in range of the jump table. So before doing a lookup in the
-jump table gcc has to make sure that pb->levels is in range. That's an
-extra branch. Also, the generated code seems to be jumping back and
-forth from the jump table instead of generating more straightforward
-code. Even though the branch predictor should always predict this
-correctly, let's try to improve it.
+to know that clang (the version I use) will generate a jump table for
+that switch. But there is no way to convince clang (or gcc for that
+matter) that `pb->levels` is always in range of the jump table. So
+before doing a lookup in the jump table the compiler has to make sure
+that `pb->levels` is in range. That's an extra branch. Also, the
+generated code seems to be jumping back and forth from the jump table
+instead of generating more straightforward code. Even though the
+branch predictor should always predict this correctly, let's try to
+improve it.
 
 `p64v3jump` does that. We're now deep into "shaving to lose weight"
-territory. To achieve this we use a little known feature of gcc:
-computed gotos and labels as values. If it wasn't clear, this is
-far beyond standard C. 
+territory. To achieve this we use a little known feature of gcc (which
+clang also supports): computed gotos and labels as values. If it
+wasn't clear, this is far beyond standard C.
 
     p64v3jump-mid-dense-populate vs. p64v3switch-mid-dense-populate
     x statdir/p64v3switch-mid-dense-populate
