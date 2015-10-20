@@ -585,7 +585,7 @@ static void
 p64v3jump_set(void *v, unsigned int b)
 {
 	struct p64v3_bmap *pb = v;
-	const void * const ls[7] = {
+	static const void * const ls[7] = {
 		NULL,
 		&&l_1,
 		&&l_2,
